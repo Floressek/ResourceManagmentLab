@@ -41,6 +41,7 @@ PRZYKŁADOWE UŻYCIE:
 
 12. Walidacja pipeline'u:
     ?- zbuduj_pipeline(customer_churn, svm, P), waliduj_pipeline(P).
+    % true (svm wymaga normalizacji, a churn ma cechy numeryczne → jest w Steps)
 
 === WŁAŚCIWOŚCI MODELI ===
 
@@ -67,5 +68,12 @@ PRZYKŁADOWE UŻYCIE:
 19. Datasety wymagające class balancing:
     ?- findall(D, preprocessing_potrzebny(D, class_balancing), Datasety).
 
-20. Modele dobre dla wysokowymiarowych danych:
-    ?- findall(M, dobry_dla_wysokowymiarowych(M), Modele).
+20. Przykład poprawnego pipeline'u:
+    ?- zbuduj_pipeline(customer_churn, svm, P), waliduj_pipeline(P).
+    % true — svm wymaga normalizacji, a dataset customer_churn ma cechy numeryczne,
+    % więc w preprocessing jest [normalizacja, imputacja], czyli wszystko się zgadza.
+
+21. Przykład błędnego pipeline'u (brak wymaganego kroku):
+    ?- Bad = [preprocessing([imputacja]), model(svm), postprocessing([walidacja, metryki])],
+       waliduj_pipeline(Bad).
+    % false — svm wymaga normalizacji, ale w krokach jej nie ma.
