@@ -343,6 +343,7 @@ sortuj_malejaco(Lista, Posortowane) :-
 %rekurencyjne wyciaganie top n elementow z listy
 wez_n_pierwszych(_, 0, []) :- !. %zero el
 wez_n_pierwszych([], 0, []) :- !. %pusta lista
+wez_n_pierwszych([], _N, []) :- !. % lista pusta i N > 0
 wez_n_pierwszych([H|T], N, [H|Reszta]) :-
     N > 0,
     N1 is N - 1,
