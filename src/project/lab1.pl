@@ -78,10 +78,6 @@ radzi_sobie_z_outlierami(random_forest).
 radzi_sobie_z_outlierami(xgboost).
 radzi_sobie_z_outlierami(isolation_forest).
 
-dobry_dla_wysokowymiarowych(svm).
-dobry_dla_wysokowymiarowych(neural_network).
-dobry_dla_wysokowymiarowych(xgboost).
-
 dataset(customer_churn, [
     rozmiar(50000),
     liczba_cech(20),
@@ -172,6 +168,17 @@ dane_zbalasowane(Dataset) :-
 dane_bardzo_niezbalansowane(Dataset) :-
     dataset_ma_ceche(Dataset, balans_klas, B), B < 0.2.
 
+wysokowymiarowy(Dataset) :-
+    dataset_ma_ceche(Dataset, liczba_cech, P),
+    P >= 100, !.
+
+dobry_dla_wysokowymiarowych(svm, Dataset) :-
+    wysokowymiarowy(Dataset), !.
+dobry_dla_wysokowymiarowych(neural_network, Dataset) :-
+    wysokowymiarowy(Dataset), !.
+dobry_dla_wysokowymiarowych(xgboost, Dataset) :-
+    wysokowymiarowy(Dataset), !.
+
 % ================== REGUŁY WNIOSKOWANIA - PREPROCESSING ==================
 
 preprocessing_potrzebny(Dataset, normalizacja) :-
@@ -225,3 +232,83 @@ model_spelnia_priotytety(Model, Dataset) :-
     szybki_trening(Model),
     szybki_predykcja(Model), !.
 model_spelnia_priotytety(_, _).
+
+% ================== REGUŁY WNIOSKOWANIA - DOBIERANIE MODELU ==================
+model_odpowiedni(Model, Dataset) :-
+   dataset_ma_ceche(Dataset, problem, Problem),
+   model_pasuje_do_problemu(Model, Problem),
+   model_odpowiedni_do_rozmiaru(Model, Dataset),
+   model_dla_niezbalansowanych(Model, Dataset),
+   model_dla_outlierow(Model, Dataset).
+
+% ================== SCORING MODELI ==================
+ocen_model(Model, Dataset, Ocena) :-
+   model_odpowiedni(Model, Dataset),
+   oblicz_ocene(Model, Dataset, Ocena), !.
+
+oblicz_ocene(Model, Dataset, Ocena) :-
+   ocena_bazowa(Model, Dataset, Baza),
+   bonus_intepretacji(Model, Dataset, Bonus1),
+   bonus_szybkosc(Model, Bonus2),
+   bonus_odpornosc(Model, Bonus3),
+   bonus_priorytet(Model, Dataset, Bonus4),
+    Ocena is Baza + Bonus1 + Bonus2 + Bonus3 + Bonus4,
+    Ocena =< 100.
+
+ocena_bazowa(Model, Dataset, 60) :-
+    rozmiar_datasetu(Dataset, duzy),
+    radzi_sobie_z_duzymi_danymi(Model), !.
+ocena_bazowa(Model, Dataset, 55) :-
+    rozmiar_datasetu(Dataset, maly),
+    dobry_dla_malych_danych(Model), !.
+ocena_bazowa(_, _, 50).
+
+bonus_intepretacji(Model, Dataset, 25) :-
+    interpretable(Model),
+    dataset_ma_ceche(Dataset, priorytet, interpretacja), !.
+bonus_intepretacji(Model, _, 10) :-
+    interpretable(Model), !.
+bonus_intepretacji(_, _, 0).
+
+bonus_szybkosc(Model, 15) :-
+    szybki_trening(Model),
+    szybki_predykcja(Model), !.
+bonus_szybkosc(Model, 8) :-
+   (szybki_trening(Model) ; szybki_predykcja(Model)), !.
+bonus_szybkosc(_, 0).
+
+bonus_odpornosc(Model, 15) :-
+    odporny_na_overfitting(Model), !.
+bonus_odpornosc(_, 0).
+
+bonus_priorytet(Model, Dataset, 20) :-
+    dataset_ma_ceche(Dataset, priorytet, P),
+    (
+      % --- PRIORYTET: DOKŁADNOŚĆ ---
+      P = dokladnosc ->
+        ( dataset_ma_ceche(Dataset, nieliniowy, tak)
+          -> ( Model = xgboost ; Model = neural_network ; Model = svm )
+           ;  true ),
+        ( dane_bardzo_niezbalansowane(Dataset)
+          -> radzi_sobie_z_nierownowaga(Model)
+           ;  true ),
+        ( dataset_ma_ceche(Dataset, outliery, duzo)
+          -> radzi_sobie_z_outlierami(Model)
+           ;  true ),
+        ( rozmiar_datasetu(Dataset, duzy)
+          -> radzi_sobie_z_duzymi_danymi(Model)
+           ;  true ),
+        ( wysokowymiarowy(Dataset)
+          -> dobry_dla_wysokowymiarowych(Model, Dataset)
+           ;  true )
+      % --- PRIORYTET: SZYBKOŚĆ ---
+      ; P = szybkosc ->
+        szybki_trening(Model),
+        szybki_predykcja(Model)
+      % --- PRIORYTET: INTERPRETACJA ---
+      ; P = interpretacja ->
+        interpretable(Model)
+    ), !.
+bonus_priorytet(_, _, 0).
+
+
