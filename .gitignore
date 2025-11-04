@@ -1,0 +1,65 @@
+# Prolog compiled files
+*.qlf
+*.qly
+*.qlr
+*.qex
+*.qo
+*.po
+
+# SWI-Prolog specific
+*.state
+*.saved
+*.dump
+*.trace
+
+# Temporary files
+*~
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.orig
+
+# IDE files (JetBrains)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# OS-specific files
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Documentation build files
+*.pdf
+*.dvi
+*.aux
+*.toc
+
+# Package managers and dependencies
+node_modules/
+.npm/
+
