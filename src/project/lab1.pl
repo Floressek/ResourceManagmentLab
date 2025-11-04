@@ -244,7 +244,7 @@ model_odpowiedni(Model, Dataset) :-
 % ================== SCORING MODELI ==================
 ocen_model(Model, Dataset, Ocena) :-
    model_odpowiedni(Model, Dataset),
-   oblicz_ocene(Model, Dataset, Ocena), !.
+   oblicz_ocene(Model, Dataset, Ocena).
 
 oblicz_ocene(Model, Dataset, Ocena) :-
    ocena_bazowa(Model, Dataset, Baza),
@@ -252,8 +252,8 @@ oblicz_ocene(Model, Dataset, Ocena) :-
    bonus_szybkosc(Model, Bonus2),
    bonus_odpornosc(Model, Bonus3),
    bonus_priorytet(Model, Dataset, Bonus4),
-    Ocena is Baza + Bonus1 + Bonus2 + Bonus3 + Bonus4,
-    Ocena =< 100.
+    OcenaSuma is Baza + Bonus1 + Bonus2 + Bonus3 + Bonus4,
+    (OcenaSuma > 100 -> Ocena = 100 ; Ocena = OcenaSuma).
 
 ocena_bazowa(Model, Dataset, 60) :-
     rozmiar_datasetu(Dataset, duzy),
@@ -263,10 +263,10 @@ ocena_bazowa(Model, Dataset, 55) :-
     dobry_dla_malych_danych(Model), !.
 ocena_bazowa(_, _, 50).
 
-bonus_intepretacji(Model, Dataset, 25) :-
+bonus_intepretacji(Model, Dataset, 15) :-
     interpretable(Model),
     dataset_ma_ceche(Dataset, priorytet, interpretacja), !.
-bonus_intepretacji(Model, _, 10) :-
+bonus_intepretacji(Model, _, 8) :-
     interpretable(Model), !.
 bonus_intepretacji(_, _, 0).
 
@@ -277,38 +277,76 @@ bonus_szybkosc(Model, 8) :-
    (szybki_trening(Model) ; szybki_predykcja(Model)), !.
 bonus_szybkosc(_, 0).
 
-bonus_odpornosc(Model, 15) :-
+bonus_odpornosc(Model, 10) :-
     odporny_na_overfitting(Model), !.
 bonus_odpornosc(_, 0).
 
-bonus_priorytet(Model, Dataset, 20) :-
+bonus_priorytet(Model, Dataset, 15) :-
     dataset_ma_ceche(Dataset, priorytet, P),
     (
       % --- PRIORYTET: DOKŁADNOŚĆ ---
       P = dokladnosc ->
-        ( dataset_ma_ceche(Dataset, nieliniowy, tak)
-          -> ( Model = xgboost ; Model = neural_network ; Model = svm )
-           ;  true ),
-        ( dane_bardzo_niezbalansowane(Dataset)
-          -> radzi_sobie_z_nierownowaga(Model)
-           ;  true ),
-        ( dataset_ma_ceche(Dataset, outliery, duzo)
-          -> radzi_sobie_z_outlierami(Model)
-           ;  true ),
-        ( rozmiar_datasetu(Dataset, duzy)
-          -> radzi_sobie_z_duzymi_danymi(Model)
-           ;  true ),
-        ( wysokowymiarowy(Dataset)
-          -> dobry_dla_wysokowymiarowych(Model, Dataset)
-           ;  true )
-      % --- PRIORYTET: SZYBKOŚĆ ---
+        (
+          (dataset_ma_ceche(Dataset, nieliniowy, tak) ->
+            (Model = xgboost ; Model = neural_network ; Model = svm)
+          ; true),
+          (dane_bardzo_niezbalansowane(Dataset) ->
+            radzi_sobie_z_nierownowaga(Model)
+          ; true),
+          (dataset_ma_ceche(Dataset, outliery, duzo) ->
+            radzi_sobie_z_outlierami(Model)
+          ; true),
+          (rozmiar_datasetu(Dataset, duzy) ->
+            radzi_sobie_z_duzymi_danymi(Model)
+          ; true),
+          (wysokowymiarowy(Dataset) ->
+            dobry_dla_wysokowymiarowych(Model, Dataset)
+          ; true)
+        )
       ; P = szybkosc ->
         szybki_trening(Model),
         szybki_predykcja(Model)
       % --- PRIORYTET: INTERPRETACJA ---
       ; P = interpretacja ->
         interpretable(Model)
+      ; fail
     ), !.
 bonus_priorytet(_, _, 0).
 
+% ================== REKOMENDACJE ==================
+rekomenduj(Dataset, Model, Ocena, Preprocessing, Wyjasnienie) :-
+    ocen_model(Model, Dataset, Ocena),
+    findall(P, preprocessing_potrzebny(Dataset, P), Preprocessing),
+    wygeneruj_wyjasnienie(Model, Dataset, Ocena, Wyjasnienie).
 
+wygeneruj_wyjasnienie(Model, Dataset, Ocena, Wyjasnienie) :-
+    dataset_ma_ceche(Dataset, problem, Problem),
+    rozmiar_datasetu(Dataset, Rozmiar),
+    Wyjasnienie =.. [rekomendacja, Model, Problem, Rozmiar, Ocena].
+
+top_modele(Dataset, N, TopModele) :-
+    findall(
+        [Ocena, Model, Preprocessing],
+        rekomenduj(Dataset, Model, Ocena, Preprocessing, _),
+        WszystkieModele
+    ),
+    sortuj_malejaco(WszystkieModele, PosortowaneModele),
+    wez_n_pierwszych(PosortowaneModele, N, TopModele).
+
+%helper funkcje
+%sortuj_malejaco(Lista, Posortowane) :-
+%    predsort(cmp, Lista, Posortowane).
+
+sortuj_malejaco(Lista, Posortowane) :-
+    sort(0, @>=, Lista, Posortowane).
+
+%rekurencyjne wyciaganie top n elementow z listy
+wez_n_pierwszych(_, 0, []) :- !. %zero el
+wez_n_pierwszych([], 0, []) :- !. %pusta lista
+wez_n_pierwszych([H|T], N, [H|Reszta]) :-
+    N > 0,
+    N1 is N - 1,
+    wez_n_pierwszych(T, N1, Reszta).
+
+% ================== PIPELINE ML ==================
+%zbuduj_pipeline
