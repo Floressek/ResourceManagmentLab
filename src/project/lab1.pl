@@ -32,7 +32,7 @@
 % SYSTEM DOBORU MODELU MACHINE LEARNING
 % =====================================================
 
-% ================== FAKTY BAZOWE ==================
+% ================== FAKTY BAZOWE - DANE / DATASEY ==================
 
 % Typy problemow ML
 typ_problemu(klasyfikacja_binarna).
@@ -191,3 +191,37 @@ preprocessing_potrzebny(Dataset, feature_selection) :-
     stosunek_cech_do_probek(Dataset, Stosunek), Stosunek > 0.5.
 
 % ================== REGUŁY WNIOSKOWANIA - WARUNKOWANIE MODELI ==================
+
+model_pasuje_do_problemu(Model, Problem) :-
+    model(Model, _, ListaProblemow),
+    member(Problem, ListaProblemow).
+
+model_odpowiedni_do_rozmiaru(Model, Dataset) :-
+   rozmiar_datasetu(Dataset, maly),
+    dobry_dla_malych_danych(Model), !.
+model_odpowiedni_do_rozmiaru(Model, Dataset) :-
+   rozmiar_datasetu(Dataset, duzy),
+    radzi_sobie_z_duzymi_danymi(Model), !.
+model_odpowiedni_do_rozmiaru(_, _).
+
+model_dla_niezbalansowanych(Model, Dataset) :-
+    \+ dane_zbalasowane(Dataset),
+    radzi_sobie_z_nierownowaga(Model), !.
+%kiedy dane zbalansowane to kazdy model jest ok
+model_dla_niezbalansowanych(_, Dataset) :-
+    dane_zbalasowane(Dataset).
+
+model_dla_outlierow(Model, Dataset) :-
+    dataset_ma_ceche(Dataset, outliery, duzo),
+    radzi_sobie_z_outlierami(Model), !.
+model_dla_outlierow(_, Dataset) :-
+   \+ dataset_ma_ceche(Dataset, outliery, duzo).
+
+model_spelnia_priotytety(Model, Dataset) :-
+    dataset_ma_ceche(Dataset, priorytet, interpretacja),
+    interpretable(Model), !.
+model_spelnia_priotytety(Model, Dataset) :-
+    dataset_ma_ceche(Dataset, priorytet, szybkosc),
+    szybki_trening(Model),
+    szybki_predykcja(Model), !.
+model_spelnia_priotytety(_, _).
