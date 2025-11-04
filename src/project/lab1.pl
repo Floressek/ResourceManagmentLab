@@ -171,3 +171,23 @@ dane_zbalasowane(Dataset) :-
 
 dane_bardzo_niezbalansowane(Dataset) :-
     dataset_ma_ceche(Dataset, balans_klas, B), B < 0.2.
+
+% ================== REGUŁY WNIOSKOWANIA - PREPROCESSING ==================
+
+preprocessing_potrzebny(Dataset, normalizacja) :-
+    dataset_ma_ceche(Dataset, typ_cech, Typy),
+    member(numeryczne, Typy).
+
+preprocessing_potrzebny(Dataset, imputacja) :-
+    dataset_ma_ceche(Dataset, brakujace_wartosci, tak).
+
+preprocessing_potrzebny(Dataset, usuwanie_outlierow) :-
+    dataset_ma_ceche(Dataset, outliery, duzo).
+
+preprocessing_potrzebny(Dataset, class_balancing) :-
+    dane_bardzo_niezbalansowane(Dataset).
+
+preprocessing_potrzebny(Dataset, feature_selection) :-
+    stosunek_cech_do_probek(Dataset, Stosunek), Stosunek > 0.5.
+
+% ================== REGUŁY WNIOSKOWANIA - WARUNKOWANIE MODELI ==================
