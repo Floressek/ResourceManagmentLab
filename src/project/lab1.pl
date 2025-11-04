@@ -162,7 +162,7 @@ rozmiar_datasetu(Dataset, sredni) :-
 rozmiar_datasetu(Dataset, duzy) :-
     dataset_ma_ceche(Dataset, rozmiar, R), R > 100000.
 
-dane_zbalasowane(Dataset) :-
+dane_zbalansowane(Dataset) :-
     dataset_ma_ceche(Dataset, balans_klas, B), B >= 0.7.
 
 dane_bardzo_niezbalansowane(Dataset) :-
@@ -349,4 +349,63 @@ wez_n_pierwszych([H|T], N, [H|Reszta]) :-
     wez_n_pierwszych(T, N1, Reszta).
 
 % ================== PIPELINE ML ==================
-%zbuduj_pipeline
+zbuduj_pipeline(Dataset, Model, Pipeline) :-
+    findall(P, preprocessing_potrzebny(Dataset, P), Preprocessing),
+    Pipeline = [preprocessing(Preprocessing), model(Model), postprocessing([walidacja, metryki])].
+
+waliduj_pipeline([preprocessing(Steps), model(Model)|_]) :-
+    preprocessing_kompletny(Steps, Model).
+
+preprocessing_kompletny(Steps, Model) :-
+    (wymaga_normalizacji(Model) -> member(normalizacja, Steps) ; true).
+% ================== PORÓWNYWANIE MODELI ==================
+
+porownaj_modele(Dataset, Model1, Model2, Lepszy) :-
+    ocen_model(Model1, Dataset, Ocena1),
+    ocen_model(Model2, Dataset, Ocena2),
+    (Ocena1 > Ocena2 -> Lepszy = Model1; Lepszy = Model2).
+
+najlepszy_z_listy(Dataset, Modele, Najlepszy, NajlepszaOcena) :-
+    findall(Score-Model,
+            ( member(Model, Modele),
+              ocen_model(Model, Dataset, Score)
+            ),
+            Pary),
+    Pary \= [],
+    keysort(Pary, PosortAsc),
+    reverse(PosortAsc, [NajlepszaOcena-Najlepszy | _]).
+
+najlepszy_z_listy(Dataset, Modele, none, 0) :-
+    \+ ( member(M, Modele), ocen_model(M, Dataset, _) ).
+
+
+% ================== ANALIZA DATASETU ==================
+
+analizuj_dataset(Dataset, Analiza) :-
+    dataset(Dataset, _),
+    rozmiar_datasetu(Dataset, Rozmiar),
+    dataset_ma_ceche(Dataset, problem, Problem),
+    (dane_zbalansowane(Dataset) -> Balans = zbalansowany; Balans = niezbalansowany),
+    stosunek_cech_do_probek(Dataset, Stosunek),
+    Analiza = analiza(Dataset, Problem, Rozmiar, Balans, Stosunek).
+
+modele_dla_problemu(Problem, Modele) :-
+    findall(Model, model_pasuje_do_problemu(Model, Problem), Modele).
+
+ile_modeli_dla_problemu(Problem, Liczba) :-
+    findall(M, model_pasuje_do_problemu(M, Problem), Modele),
+    length(Modele, Liczba).
+
+wymaga_gpu(neural_network).
+
+czas_treningu(Model, Dataset, szybki) :-
+    szybki_trening(Model),
+    rozmiar_datasetu(Dataset, R),
+    R \= duzy.
+czas_treningu(Model, Dataset, sredni) :-
+    \+ szybki_trening(Model),
+    rozmiar_datasetu(Dataset, maly).
+czas_treningu(Model, Dataset, dlugi) :-
+    rozmiar_datasetu(Dataset, duzy),
+    (Model = neural_network ; Model = svm).
+czas_treningu(_M, _D, sredni).
