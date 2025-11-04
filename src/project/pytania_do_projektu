@@ -1,0 +1,71 @@
+PRZYKŁADOWE UŻYCIE:
+
+=== PODSTAWOWE ZAPYTANIA ===
+
+1. Rekomendacja dla datasetu:
+   ?- rekomenduj(customer_churn, Model, Ocena, Preprocessing, Wyjaśnienie).
+
+2. Top 3 modele dla datasetu:
+   ?- top_modele(house_prices, 3, Top).
+
+3. Top 3 modele dla fraud detection:
+   ?- top_modele(credit_fraud, 3, Top).
+
+4. Wszystkie modele dla problemu:
+   ?- modele_dla_problemu(klasyfikacja_binarna, Modele).
+
+5. Ile modeli obsługuje regresję:
+   ?- ile_modeli_dla_problemu(regresja, Liczba).
+
+=== PORÓWNANIA I ANALIZA ===
+
+6. Porównaj dwa modele:
+   ?- porownaj_modele(customer_churn, random_forest, xgboost, Lepszy).
+
+7. Najlepszy model z listy kandydatów:
+   ?- najlepszy_z_listy(credit_fraud, [random_forest, xgboost, logistic_regression], Najlepszy, Ocena).
+
+8. Analiza trudności datasetu:
+   ?- analizuj_dataset(mnist, Analiza).
+
+9. Analiza datasetu klasteryzacji:
+   ?- analizuj_dataset(customer_segments, Analiza).
+
+=== PREPROCESSING I PIPELINE ===
+
+10. Wymagany preprocessing:
+    ?- findall(P, preprocessing_potrzebny(credit_fraud, P), Steps).
+
+11. Pipeline dla modelu i datasetu:
+    ?- zbuduj_pipeline(house_prices, xgboost, Pipeline).
+
+12. Walidacja pipeline'u:
+    ?- zbuduj_pipeline(customer_churn, svm, P), waliduj_pipeline(P).
+
+=== WŁAŚCIWOŚCI MODELI ===
+
+13. Które modele są interpretowalne:
+    ?- findall(M, interpretable(M), Modele).
+
+14. Modele szybkie w treningu:
+    ?- findall(M, szybki_trening(M), Modele).
+
+15. Modele radzące sobie z niezbalansowaniem:
+    ?- findall(M, radzi_sobie_z_nierownowaga(M), Modele).
+
+16. Czas treningu dla modelu i datasetu:
+    ?- czas_treningu(neural_network, mnist, Czas).
+
+17. Czy model wymaga GPU:
+    ?- wymaga_gpu(neural_network).
+
+=== ZAAWANSOWANE ===
+
+18. Wszystkie datasety z problemem klasyfikacji:
+    ?- findall(D, dataset_ma_ceche(D, problem, klasyfikacja_binarna), Datasety).
+
+19. Datasety wymagające class balancing:
+    ?- findall(D, preprocessing_potrzebny(D, class_balancing), Datasety).
+
+20. Modele dobre dla wysokowymiarowych danych:
+    ?- findall(M, dobry_dla_wysokowymiarowych(M), Modele).
