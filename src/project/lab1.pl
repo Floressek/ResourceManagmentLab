@@ -141,3 +141,33 @@ dataset(customer_segments, [
     nieliniowy(tak),
     priorytet(szybkosc)
 ]).
+
+% ================== PREDYKATY POMOCNICZE ==================
+
+pobierz_wartosc(Klucz, [Term|_], Wartosc) :-
+    Term =.. [Klucz, Wartosc], !.
+pobierz_wartosc(Klucz, [_|Ogon], Wartosc) :-
+    pobierz_wartosc(Klucz, Ogon, Wartosc).
+
+dataset_ma_ceche(Dataset, Cecha, Wartosc) :-
+    dataset(Dataset, Wlasciwosci),
+    pobierz_wartosc(Cecha, Wlasciwosci, Wartosc).
+
+% badanie wymiarowosci -> >0.5 potrzebna selekcja danych
+stosunek_cech_do_probek(Dataset, Stosunek) :-
+    dataset_ma_ceche(Dataset, rozmiar, Rozmiar),
+    dataset_ma_ceche(Dataset, liczba_cech, Cechy),
+    Stosunek is Cechy / Rozmiar.
+
+rozmiar_datasetu(Dataset, maly) :-
+    dataset_ma_ceche(Dataset, rozmiar, R), R < 10000.
+rozmiar_datasetu(Dataset, sredni) :-
+    dataset_ma_ceche(Dataset, rozmiar, R), R >= 10000, R =< 100000.
+rozmiar_datasetu(Dataset, duzy) :-
+    dataset_ma_ceche(Dataset, rozmiar, R), R > 100000.
+
+dane_zbalasowane(Dataset) :-
+    dataset_ma_ceche(Dataset, balans_klas, B), B >= 0.7.
+
+dane_bardzo_niezbalansowane(Dataset) :-
+    dataset_ma_ceche(Dataset, balans_klas, B), B < 0.2.
